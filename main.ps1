@@ -19,7 +19,7 @@ do {
     }
     
     Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host " Shortcuts allowed! Enter e.g., '6+A' or comma lists '2,6+B'" -ForegroundColor Gray
+    Write-Host " Shortcuts allowed! Enter e.g., '6+A' or comma lists '7+A,6+C'" -ForegroundColor Gray
     Write-Host ""
     Write-Host " [1] Elevate: Reopen This Toolkit as Administrator"
     Write-Host " [2] WinGet: Update All Apps ----------- (Requires Admin)"
@@ -27,7 +27,8 @@ do {
     Write-Host " [4] OS Repair: Run DISM & SFC Recovery - (Requires Admin)"
     Write-Host " [5] Activation: Windows Suite (MAS) ---- (Requires Admin)"
     Write-Host " [6] Power: Shut Down & Firmware Actions - (User/Admin Friendly)"
-    Write-Host " [7] Exit Toolkit"
+    Write-Host " [7] Maintenance: Clear Temp & Caches --- (User/Admin Friendly)"
+    Write-Host " [8] Exit Toolkit"
     Write-Host "==================================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -92,7 +93,7 @@ do {
     } else {
         # Process non-elevation choices normally
         foreach ($Choice in $Choices) {
-            if ($Choice -eq '7') {
+            if ($Choice -eq '8') {
                 Clear-Host
                 Write-Host "Closing toolkit session..." -ForegroundColor Red
                 Start-Sleep -Seconds 1
@@ -119,10 +120,9 @@ do {
                     
                     $UserMenuLoop = $true
                     while ($UserMenuLoop) {
-                        # If a shortcut sub-option exists, use it instantly; otherwise, prompt user
                         if ($ShortcutArgs.ContainsKey('3')) {
                             $SubChoice = $ShortcutArgs['3']
-                            $ShortcutArgs.Remove('3') # Clear it so it doesn't loop infinitely
+                            $ShortcutArgs.Remove('3')
                         } else {
                             Clear-Host
                             Write-Host "==================================================" -ForegroundColor Cyan
@@ -235,10 +235,9 @@ do {
                 6 {
                     $PowerMenuLoop = $true
                     while ($PowerMenuLoop) {
-                        # If a shortcut sub-option exists, use it instantly; otherwise, prompt user
                         if ($ShortcutArgs.ContainsKey('6')) {
                             $PowerChoice = $ShortcutArgs['6']
-                            $ShortcutArgs.Remove('6') # Clear it so it doesn't loop infinitely
+                            $ShortcutArgs.Remove('6')
                         } else {
                             Clear-Host
                             Write-Host "==================================================" -ForegroundColor Cyan
@@ -295,6 +294,89 @@ do {
                             }
                             Default {
                                 Write-Host "Selection '$PowerChoice' is invalid." -ForegroundColor Red
+                                Start-Sleep -Seconds 1
+                            }
+                        }
+                    }
+                }
+                7 {
+                    $MaintenanceMenuLoop = $true
+                    while ($MaintenanceMenuLoop) {
+                        if ($ShortcutArgs.ContainsKey('7')) {
+                            $MaintChoice = $ShortcutArgs['7']
+                            $ShortcutArgs.Remove('7')
+                        } else {
+                            Clear-Host
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host "             [7] MAINTENANCE & CLEANUP MENU        " -ForegroundColor White -BackgroundColor Blue
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host " [A] Clean Current User Temp (%temp%)"
+                            Write-Host " [B] Clean System Temp & Windows Update Caches (Requires Admin)"
+                            Write-Host " [C] Run All Temp & Cache Cleanups ------------ (Requires Admin)"
+                            Write-Host " [D] Back to Main Toolkit Menu"
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host ""
+                            $MaintChoice = (Read-Host "Select a maintenance task").ToUpper().Trim()
+                        }
+                        
+                        # Helper block to safely scrub folder paths while avoiding locked system files
+                        $ScrubFolder = {
+                            param([string]$Path)
+                            if (Test-Path $Path) {
+                                Write-Host "Target: $Path" -ForegroundColor Gray
+                                Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                                    try {
+                                        Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                                    } catch {}
+                                }
+                                Write-Host "Scrub complete for $Path." -ForegroundColor Green
+                            }
+                        }
+
+                        switch ($MaintChoice) {
+                            "A" {
+                                Clear-Host
+                                Write-Host "--- Cleaning User Temp (%temp%) ---" -ForegroundColor Green
+                                $UserTemp = "$env:USERPROFILE\AppData\Local\Temp"
+                                &$ScrubFolder -Path $UserTemp
+                                $RanTasks = $true
+                                $MaintenanceMenuLoop = $false
+                            }
+                            "B" {
+                                Clear-Host
+                                if (-not $IsAdmin) {
+                                    Write-Host "ERROR: Cleaning system-wide directories requires Administrator privileges." -ForegroundColor Red
+                                    Start-Sleep -Seconds 3
+                                    break
+                                }
+                                Write-Host "--- Cleaning System Temp & Update Caches ---" -ForegroundColor Green
+                                &$ScrubFolder -Path "$env:windir\Temp"
+                                &$ScrubFolder -Path "$env:windir\SoftwareDistribution\Download"
+                                $RanTasks = $true
+                                $MaintenanceMenuLoop = $false
+                            }
+                            "C" {
+                                Clear-Host
+                                if (-not $IsAdmin) {
+                                    Write-Host "ERROR: Full machine scrub requires Administrator privileges." -ForegroundColor Red
+                                    Start-Sleep -Seconds 3
+                                    break
+                                }
+                                Write-Host "--- Running Comprehensive Cleanup ---" -ForegroundColor Green
+                                Write-Host "Purging local user caches..." -ForegroundColor Gray
+                                &$ScrubFolder -Path "$env:USERPROFILE\AppData\Local\Temp"
+                                Write-Host "Purging Windows core temporary directories..." -ForegroundColor Gray
+                                &$ScrubFolder -Path "$env:windir\Temp"
+                                Write-Host "Purging downloaded update stores..." -ForegroundColor Gray
+                                &$ScrubFolder -Path "$env:windir\SoftwareDistribution\Download"
+                                $RanTasks = $true
+                                $MaintenanceMenuLoop = $false
+                            }
+                            "D" {
+                                $MaintenanceMenuLoop = $false
+                            }
+                            Default {
+                                Write-Host "Selection '$MaintChoice' is invalid." -ForegroundColor Red
                                 Start-Sleep -Seconds 1
                             }
                         }
