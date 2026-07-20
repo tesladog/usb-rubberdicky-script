@@ -19,7 +19,7 @@ do {
     }
     
     Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host " Enter single numbers or comma-separated lists (e.g., 2,4)" -ForegroundColor Gray
+    Write-Host " Shortcuts allowed! Enter e.g., '6+A' or comma lists '2,6+B'" -ForegroundColor Gray
     Write-Host ""
     Write-Host " [1] Elevate: Reopen This Toolkit as Administrator"
     Write-Host " [2] WinGet: Update All Apps ----------- (Requires Admin)"
@@ -33,8 +33,24 @@ do {
     
     $RawInput = Read-Host "Select options to run"
     
-    # Split the choices by commas and remove extra spaces
-    $Choices = $RawInput.Split(',').ForEach({ $_.Trim() })
+    # Pre-parse inputs: split by commas first
+    $RawChoices = $RawInput.Split(',').ForEach({ $_.Trim() })
+    $Choices = [System.Collections.Generic.List[string]]::new()
+    
+    # Track any shortcut arguments (e.g., if '6+A' is passed, $ShortcutArgs['6'] = 'A')
+    $ShortcutArgs = @{}
+    
+    foreach ($Item in $RawChoices) {
+        if ($Item -match '\+') {
+            $Parts = $Item.Split('+')
+            $MainOption = $Parts[0].Trim()
+            $SubOption = $Parts[1].Trim().ToUpper()
+            $Choices.Add($MainOption)
+            $ShortcutArgs[$MainOption] = $SubOption
+        } else {
+            $Choices.Add($Item)
+        }
+    }
 
     # Track if we actually executed any tasks that need a pause at the end
     $RanTasks = $false
@@ -103,18 +119,23 @@ do {
                     
                     $UserMenuLoop = $true
                     while ($UserMenuLoop) {
-                        Clear-Host
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host "         [3] USER ACCOUNT MANAGEMENT MENU         " -ForegroundColor White -BackgroundColor Blue
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host " [A] List All Local User Accounts"
-                        Write-Host " [B] Activate Built-in Administrator Account"
-                        Write-Host " [C] Deactivate Built-in Administrator Account"
-                        Write-Host " [D] Back to Main Toolkit Menu"
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host ""
-                        
-                        $SubChoice = (Read-Host "Select a user management task").ToUpper().Trim()
+                        # If a shortcut sub-option exists, use it instantly; otherwise, prompt user
+                        if ($ShortcutArgs.ContainsKey('3')) {
+                            $SubChoice = $ShortcutArgs['3']
+                            $ShortcutArgs.Remove('3') # Clear it so it doesn't loop infinitely
+                        } else {
+                            Clear-Host
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host "         [3] USER ACCOUNT MANAGEMENT MENU         " -ForegroundColor White -BackgroundColor Blue
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host " [A] List All Local User Accounts"
+                            Write-Host " [B] Activate Built-in Administrator Account"
+                            Write-Host " [C] Deactivate Built-in Administrator Account"
+                            Write-Host " [D] Back to Main Toolkit Menu"
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host ""
+                            $SubChoice = (Read-Host "Select a user management task").ToUpper().Trim()
+                        }
                         
                         switch ($SubChoice) {
                             "A" {
@@ -214,19 +235,24 @@ do {
                 6 {
                     $PowerMenuLoop = $true
                     while ($PowerMenuLoop) {
-                        Clear-Host
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host "         [6] POWER & HARDWARE FIRMWARE MENU       " -ForegroundColor White -BackgroundColor Blue
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host " [A] Force Reboot Machine ----------- (shutdown /r /f /t 0)"
-                        Write-Host " [B] Full Shutdown (Fast Start Off) - (shutdown /s /f /t 0)"
-                        Write-Host " [C] Standard System Shutdown ------- (shutdown /s /t 0)"
-                        Write-Host " [D] Direct Boot into UEFI/BIOS ----- (shutdown /r /fw /f /t 0)"
-                        Write-Host " [E] Back to Main Toolkit Menu"
-                        Write-Host "==================================================" -ForegroundColor Cyan
-                        Write-Host ""
-                        
-                        $PowerChoice = (Read-Host "Select a power management task").ToUpper().Trim()
+                        # If a shortcut sub-option exists, use it instantly; otherwise, prompt user
+                        if ($ShortcutArgs.ContainsKey('6')) {
+                            $PowerChoice = $ShortcutArgs['6']
+                            $ShortcutArgs.Remove('6') # Clear it so it doesn't loop infinitely
+                        } else {
+                            Clear-Host
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host "         [6] POWER & HARDWARE FIRMWARE MENU       " -ForegroundColor White -BackgroundColor Blue
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host " [A] Force Reboot Machine ----------- (shutdown /r /f /t 0)"
+                            Write-Host " [B] Full Shutdown (Fast Start Off) - (shutdown /s /f /t 0)"
+                            Write-Host " [C] Standard System Shutdown ------- (shutdown /s /t 0)"
+                            Write-Host " [D] Direct Boot into UEFI/BIOS ----- (shutdown /r /fw /f /t 0)"
+                            Write-Host " [E] Back to Main Toolkit Menu"
+                            Write-Host "==================================================" -ForegroundColor Cyan
+                            Write-Host ""
+                            $PowerChoice = (Read-Host "Select a power management task").ToUpper().Trim()
+                        }
                         
                         switch ($PowerChoice) {
                             "A" {
