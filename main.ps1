@@ -8,7 +8,7 @@ do {
     $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     
     Write-Host "==================================================" -ForegroundColor Cyan
-    Write-Host "             SPECIALIZED TECH TOOLKIT             " -ForegroundColor White -BackgroundColor Blue
+    Write-Host "                NELSON.B TECH TOOLKIT             " -ForegroundColor White -BackgroundColor Blue
     Write-Host "==================================================" -ForegroundColor Cyan
     
     # Display the current Administrator privileges bar
